@@ -1,55 +1,66 @@
 import numpy as np
 
-filename = 'data.csv'
-data = np.loadtxt(filename, delimiter=',', skiprows=1)
+class LinearRegression:
+    def __init__(self, learning_rate=1e-3, iterations=1000000, normalize=False):
+        self.learning_rate = learning_rate
+        self.iterations = iterations
+        self.normalize = normalize
 
-y = data[:,0]
-n = len(y)
-y = y.reshape((n, 1))
+    def _gradient(self, X, b, y):
+        return (X.T @ X @ b) - (X.T @ y)
 
-y = (y - y.mean())/y.std()
+    def _normalize(self, X, y):
+        norm_X_trans = []
+        for col in X.T:
+            norm_X_trans.append((col - col.mean())/col.std())
 
-X = data[:,1:]
-#X = np.hstack([X, np.ones((n, 1))])
-#X = np.concatenate([X, np.ones_like(y)], axis=1)
-#print(X)
+        X = np.array(norm_X_trans).T
+        y = y = (y - y.mean())/y.std()
 
-norm_X_trans = []
-for col in X.T:
-    norm_X_trans.append((col - col.mean())/col.std())
+        return X, y
 
-X = np.array(norm_X_trans).T
+    def fit(self, X, y):
+        X = np.array(X)
+        y = np.array(y).reshape(X.shape[0], 1)
 
-learning_rate = 1e-3
-iterations = int(1e5)
+        if self.normalize:
+            X, y = self._normalize(X, y)
 
-w = np.zeros((X.shape[1], 1))
-b = 0
+        X = np.hstack([X, np.ones(X.shape[0]).reshape(X.shape[0], 1)])
+        b = np.zeros((X.shape[1], 1))
 
-for _ in range(iterations):
-    yp = np.dot(X, w) + b
-    residuals = yp - y
-    dw = np.dot(X.T, residuals) / n
-    #db = np.sum(residuals) / n
+        for _ in range(self.iterations):
+            grad = self._gradient(X, b, y)
+            b -= self.learning_rate*grad
 
-    w = w - learning_rate * dw
-    #b = b - learning_rate * db
+        self.coef_ = b.flatten()[:-1]
+        self.intercept_ = b.flatten()[-1]
 
+        return self
 
-print('my weights:')
-print(w.T)
-#print('my bias:')
-#print(b)
+    def predict(self, X):
+        return X @ self.coef_ + self.intercept_
 
-from sklearn.linear_model import LinearRegression
-reg = LinearRegression().fit(X, y)
-print('sklearn weights:')
-print(reg.coef_)
-print('sklearn bias:')
-print(reg.intercept_[0])
+if __name__ == "__main__":
+    from sklearn.linear_model import LinearRegression as LinearRegressionSK
+    from sklearn.datasets import load_diabetes
 
-print('Diff:')
-print(f'w: {np.sum(np.abs(w.T - reg.coef_))}')
-#print(f'b: {abs(b - reg.intercept_[0])}')
+    X, y = load_diabetes(return_X_y=True)
 
-print((np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y)).T)
+    reg_me = LinearRegression().fit(X, y)
+    reg_sk = LinearRegressionSK().fit(X, y)
+
+    print('Me:')
+    print(reg_me.coef_)
+    print(reg_me.intercept_)
+
+    print()
+
+    print('SK:')
+    print(reg_sk.coef_)
+    print(reg_sk.intercept_)
+
+    print()
+
+    print('Analytical:')
+    print((np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y)).T)
