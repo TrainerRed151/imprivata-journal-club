@@ -1,0 +1,83 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+\title{Linear Regression with Gradient Descent}
+\author{Brian Pomerantz}
+\date{October 2023}
+
+\begin{document}
+
+\maketitle
+
+\section{Linear Regression}
+The equation for linear regression is
+\begin{equation}
+    \hat{\mathbf{y}} = \mathbf{X}\mathbf{w} + b
+    \label{eq:lin_reg}
+\end{equation}
+where $\mathbf{X}$ is an $n\times f$ matrix where $n$ is the number of samples and $f$ is the number of features, $\hat{\mathbf{y}}$ is an $n\times 1$ column vector, $\mathbf{w}$ is an $f\times 1$ column vector, and $b$ is a constant.
+
+The bias term $b$ can be folded into the weight vector $\mathbf{w}$ as an additional $f+1$ row by adding a column of $1$s to $\mathbf{X}$, as shown below.
+\begin{equation}
+    \mathbf{X} =
+    \begin{pmatrix}
+        x_{00} & x_{01} & ... & x_{0f} & 1 \\
+        x_{10} & x_{11} & ... & x_{1f} & 1 \\
+        ... \\
+        x_{n0} & x_{n1} & ... & w_{nf} & 1
+    \end{pmatrix}
+\end{equation}
+and
+\begin{equation}
+    \mathbf{w} =
+    \begin{pmatrix}
+        w_0 \\
+        w_1 \\
+        ... \\
+        w_f \\
+        b
+    \end{pmatrix}
+\end{equation}
+Then equation \eqref{eq:lin_reg} can be written as
+\begin{equation}
+    \hat{\mathbf{y}} = \mathbf{X}\mathbf{w}
+\end{equation}
+
+\section{Loss Function}
+For the loss function, we use the Squared Loss function defined below.
+\begin{equation}
+    \mathrm{SE}(\mathbf{w};\,\mathbf{X},\,\mathbf{y}) = \sum_{i=0}^n \left(y_i - \hat{y}_i\right)^2
+    \label{eq:se}
+\end{equation}
+where $y_i$ is the $i$-th observation and $\hat{y}_i$ is the $i$-th row of $\hat{\mathbf{y}}$.  In matrix form, equation \eqref{eq:se} is equivalent to
+\begin{equation}
+    \mathrm{SE}(\mathbf{w};\,\mathbf{X},\,\mathbf{y}) = (\mathbf{y} - \mathbf{X}\mathbf{w})^\top (\mathbf{y} - \mathbf{X}\mathbf{w})
+\end{equation}
+where $\mathbf{y}$ is the $n\times 1$ column vector of observations.  Note that the loss function is a function of the weight vector $\mathbf{w}$ with constant $\mathbf{X}$ and $\mathbf{y}$.
+
+\section{Gradient Descent}
+To perform gradient descent, we update our estimate of the weights $\mathbf{w}$ by moving in the direction which most quickly minimizes the loss function, \textit{i.e.},
+\begin{equation}
+    \mathbf{w}_{i+1} = \mathbf{w}_i - \gamma\frac{\partial\mathrm{SE}(\mathbf{w})}{\partial\mathbf{w}}
+    \label{eq:gd}
+\end{equation}
+where $\gamma$ is the learning rate and $\mathbf{w}_i$ is the $i$-th iteration of the gradient descent algorithm.  With a suitable initial guess $\mathbf{w}_0$ and appropriate values of $\gamma$, convergence to a local minimum of the loss function is guaranteed so long as the loss function is convex and has a Lipschitz continuous gradient.  Note that we have dropped the reference to constant $\mathbf{X}$ and $\mathbf{y}$ in equation \eqref{eq:gd}.
+
+Solving for the gradient of the loss function gives,
+\begin{align}
+    \frac{\partial\mathrm{SE}(\mathbf{w})}{\partial\mathbf{w}} &= \frac{\partial}{\partial {\mathbf{w}}} \left[(\mathbf{y} - \mathbf{X}\mathbf{w})^\top (\mathbf{y} - \mathbf{X}\mathbf{w})\right] \\
+    & = \frac{\partial}{\partial \mathbf{w}}\left[(\mathbf{y} - \mathbf{X}\mathbf{w})^\top\mathbf{I}_n(\mathbf{y} - \mathbf{X}\mathbf{w})\right]
+\end{align}
+(where $\mathbf{I}_n$ is the $n\times n$ identity matrix) which according to equation (84) of \textit{The Matrix Cookbook},
+\begin{equation}
+    \frac{\partial\mathrm{SE}(\mathbf{w})}{\partial\mathbf{w}} = -2\mathbf{X}^\top(\mathbf{y} - \mathbf{X}\mathbf{w})
+    \label{eq:lin_reg_gd}
+\end{equation}
+
+Therefore, combining equations \eqref{eq:gd} and \eqref{eq:lin_reg_gd}, gradient descent for linear regression can be performed by updating the weight vector $\mathbf{w}$ for a given $\mathbf{X}$ and $\mathbf{y}$ according to the equation
+\begin{equation}
+    \mathbf{w}_{i+1} = \mathbf{w}_i + 2\gamma\mathbf{X}^\top(\mathbf{y} - \mathbf{X}\mathbf{w}_i)
+\end{equation}
+
+\end{document}
+
