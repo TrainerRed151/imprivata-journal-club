@@ -1,13 +1,8 @@
 import numpy as np
 
-class NeuralNetwork:
-    def __init__(self, hidden_layer_sizes=[100], learning_rate=0.001, max_iter=200, random_state=None):
-        self.hidden_size = hidden_layer_sizes[0]
-        self.learning_rate = learning_rate
-        self.max_iter = max_iter
-
-        if random_state:
-            np.random.seed(random_state)
+class HiddenLayer:
+    def __init__(self, input_size, output_size):
+        self.weights = 2 * np.random.rand(output_size, input_size+1) - 1
 
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x))
@@ -16,54 +11,88 @@ class NeuralNetwork:
         return x * (1 - x)
 
     def forward(self, X):
-        hidden_input = np.dot(X, self.weights_input_hidden) + self.bias_hidden
-        self.hidden_output = self.sigmoid(hidden_input)
-        final_input = np.dot(self.hidden_output, self.weights_hidden_output) + self.bias_output
-        final_output = self.sigmoid(final_input)
+        self.X = np.vstack([X, np.ones((1, X.shape[1]))])  # Add a row of 1s for bias
+        z = self.weights @ self.X
+        self.output = self.sigmoid(z)
+        return self.output
 
-        return final_output
+    def backward(self, dz):
+        dw = dz @ self.X.T
+        dx = self.weights.T @ dz
+        dx = dx[:-1, :]  # Remove the last row corresponding to the bias
+        return dw, dx
 
-    def backward(self, X, y, yp):
-        y = y.reshape(y.shape[0], 1)
-        residual = y - yp
-        delta_yp = residual * self.sigmoid_derivative(yp)
 
-        error_hidden = delta_yp.dot(self.weights_hidden_output.T)
-        delta_hidden = error_hidden * self.sigmoid_derivative(self.hidden_output)
+class NeuralNetwork:
+    def __init__(self, hidden_layer_sizes=[100], learning_rate=1e-3, max_iter=1000, batch_size=1000, random_state=None):
+        self.hidden_layer_sizes = hidden_layer_sizes
+        self.learning_rate = learning_rate
+        self.max_iter = max_iter
+        self.batch_size = batch_size
 
-        self.weights_hidden_output += self.hidden_output.T.dot(delta_yp) * self.learning_rate
-        self.bias_output += np.sum(delta_yp) * self.learning_rate
-        self.weights_input_hidden += X.T.dot(delta_hidden) * self.learning_rate
-        self.bias_hidden += np.sum(delta_hidden) * self.learning_rate
+        if random_state:
+            np.random.seed(random_state)
+
+    def forward_propagation(self, X):
+        x = X
+        for layer in self.hidden_layers:
+            x = layer.forward(x)
+        return self.output_layer.forward(x)
+
+    def backward_propagation(self, X, y, y_hat):
+        m = X.shape[1]
+        dz = y_hat - y
+        gradients = []
+
+        # Output layer
+        dw, dx = self.output_layer.backward(dz)
+        gradients.append((dw, dx))
+
+        # Hidden layers
+        for i in range(len(self.hidden_layers)-1, -1, -1):
+            dz = dx * self.hidden_layers[i].sigmoid_derivative(self.hidden_layers[i].output)
+            dw, dx = self.hidden_layers[i].backward(dz)
+            gradients.insert(0, (dw, dx))
+
+        return gradients
+
+    def update_parameters(self, gradients, learning_rate):
+        for i, layer in enumerate(self.hidden_layers + [self.output_layer]):
+            layer.weights -= learning_rate * gradients[i][0]
 
     def fit(self, X, y):
-        X = np.array(X)
-        y = np.array(y)
+        if len(y.shape) == 1:
+            y = np.array(y).reshape(X.shape[0], 1)
 
-        input_size = X.shape[1]
-        output_size = 1 if len(y.shape) == 1 else y.shape[1]
+        self.input_size = X.shape[1]
+        self.output_size = y.shape[1]
 
-        self.weights_input_hidden = 2*np.random.rand(input_size, self.hidden_size) - 1
-        self.bias_hidden = np.zeros((1, self.hidden_size))
-        self.weights_hidden_output = 2*np.random.rand(self.hidden_size, output_size) - 1
-        self.bias_output = np.zeros((1, output_size))
+        X = X.T
+        y = y.T
 
-        for i in range(self.max_iter):
-            yp = self.forward(X)
-            self.backward(X, y, yp)
+        # Initialize Hidden Layers
+        self.hidden_layers = [HiddenLayer(self.input_size, self.hidden_layer_sizes[0])]
+        for i in range(1, len(self.hidden_layer_sizes)):
+            self.hidden_layers.append(HiddenLayer(self.hidden_layer_sizes[i-1], self.hidden_layer_sizes[i]))
+        self.output_layer = HiddenLayer(self.hidden_layer_sizes[-1], self.output_size)
+
+        for _ in range(self.max_iter):
+            y_hat = self.forward_propagation(X)
+            gradients = self.backward_propagation(X, y, y_hat)
+            self.update_parameters(gradients, self.learning_rate)
 
         return self
 
     def predict_proba(self, X):
-        return self.forward(X)[:,0]
+        X = X.T
+        return self.forward_propagation(X)
 
     def predict(self, X):
-        yp = self.forward(X)
-        yb = []
-        for p in yp:
-            yb.append(1 if p > 0.5 else 0)
+        y_hat = self.predict_proba(X)
+        yp = y_hat > 0.5
 
-        return yb
+        return yp.astype(int)
+
 
 if __name__ == "__main__":
     from sklearn.neural_network import MLPClassifier
@@ -73,8 +102,11 @@ if __name__ == "__main__":
     X, y = make_classification(n_samples=100, random_state=1)
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=1)
 
-    clf_me = NeuralNetwork(random_state=1, max_iter=5000).fit(X_train, y_train)
-    clf_sk = MLPClassifier(random_state=1, max_iter=5000, activation='logistic', solver='sgd', batch_size=X_train.shape[0], shuffle=False).fit(X_train, y_train)
+    clf_me = NeuralNetwork(random_state=1, max_iter=10_000, hidden_layer_sizes=[100]).fit(X_train, y_train)
+    clf_sk = MLPClassifier(random_state=1, max_iter=10_000, hidden_layer_sizes=[100], activation='logistic', solver='sgd', batch_size=X_train.shape[0], shuffle=False).fit(X_train, y_train)
+
+    float_formatter = "{:.5f}".format
+    np.set_printoptions(formatter={'float_kind':float_formatter})
 
     print(f'Me: {clf_me.predict(X_test[:6, :])}')
     print(f'SK: {clf_sk.predict(X_test[:6, :])}')

@@ -1,0 +1,22 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+\title{Neural Network with Backpropagation}
+\author{Brian Pomerantz}
+\date{November 2023}
+
+\begin{document}
+
+\maketitle
+
+\section{Linear Regression}
+The equation for a FFNN is
+\begin{equation}
+    \hat{\mathbf{y}} = \sigma_{h-1}\left(\sigma_{h-2}\left(\cdots\sigma_2\left(\sigma_1(\mathbf{X}\mathbf{W}_1)\mathbf{W}_2\right)\mathbf{W}_2\cdots\right)\mathbf{W}_{h-1}\right)\mathbf{W}_h
+    \label{eq:FFNN}
+\end{equation}
+where $\mathbf{X}$ is an $n\times (f+1)$ matrix where $n$ is the number of samples and $f$ is the number of features, $\hat{\mathbf{y}}$ is an $n\times 1$ column vector, $\mathbf{w}$ is an $f\times 1$ column vector, and $b$ is a constant.
+
+
+\end{document}
+
