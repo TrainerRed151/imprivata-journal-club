@@ -28,10 +28,10 @@ class Autoencoder(nn.Module):
 
         n = len(hidden_layer_sizes)
         for i in range(n - 1):
-            self.encoder.append(hidden_layer_size[i], hidden_layer_size[i+1])
+            self.encoder.append(nn.Linear(hidden_layer_size[i], hidden_layer_size[i+1]))
             self.encoder.append(nn.ReLU())
 
-            self.decoder.append(hidden_layer_size[n-i-1], hidden_layer_size[n-i-2])
+            self.decoder.append(nn.Linear(hidden_layer_size[n-i-1], hidden_layer_size[n-i-2]))
             self.decoder.append(nn.ReLU())
 
         self.decoder.append(hidden_layer_size[0], x.size[1])
