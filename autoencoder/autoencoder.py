@@ -4,6 +4,7 @@ from torchvision import datasets
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
+
 class AutoEncoder(nn.Module):
     def __init__(self, hidden_layer_sizes=[100], learning_rate=1e-3, epochs=10, random_state=None):
         super().__init__()
