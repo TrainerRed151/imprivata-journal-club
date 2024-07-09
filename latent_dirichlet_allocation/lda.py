@@ -1,5 +1,7 @@
 import sys
 import numpy as np
+from collections import Counter
+
 
 # dirichlet distribution paramteres
 topics = {
@@ -26,7 +28,7 @@ words = {
 
 
 # article generation
-def gen_article(num_words=5):
+def gen_article(num_words=10):
     topics_distribution = np.random.dirichlet([alpha for alpha in topics.values()])
     words_distribution_dict = {}
     for i, topic in enumerate(topics):
@@ -39,13 +41,63 @@ def gen_article(num_words=5):
 
         doc.append(word)
 
-    return ' '.join(doc)
+    return doc
+
+
+# topic assignment
+def fit_articles(articles, n_topics=6, n_runs=1000, epsilon=0.1):
+    # randomly assign topics
+    topic_mapping = []
+    for article in articles:
+        topic_mapping.append(np.random.randint(n_topics, size=len(article)))
+
+    for _ in range(n_runs):
+        # select a random word in a random article
+        article_i = np.random.randint(len(articles))
+        article = articles[article_i]
+
+        word_i = np.random.randint(len(article))
+        word = article[word_i]
+
+        # get topic distribution of article
+        article_topic_counts = dict(Counter(topic_mapping[article_i]))
+
+        # get topic distribution of word in all articles
+        word_topic_counts = {}
+        for r in range(len(articles)):
+            for c in range(len(articles[r])):
+                if articles[r][c] == word:
+                    if r == article_i and c == word_i:
+                        continue
+
+                    topic = topic_mapping[r][c]
+                    if topic not in word_topic_counts:
+                        word_topic_counts[topic] = 1
+                    else:
+                        word_topic_counts[topic] += 1
+
+        # gibbs sampling
+        topic_weights = []
+        for i in range(n_topics):
+            topic_weights.append((article_topic_counts.get(i, 0) + epsilon) * (word_topic_counts.get(i, 0) + epsilon))
+
+        topic_mapping[article_i][word_i] = np.random.choice(range(n_topics), p=topic_weights/np.sum(topic_weights))
+
+    return topic_mapping
 
 
 if __name__ == '__main__':
+    np.random.seed(1)
     num_articles = int(sys.argv[1])
 
-    for i in range(num_articles):
-        print(f'Article {i+1}: {gen_article()}')
+    articles = [gen_article() for _ in range(num_articles)]
+    print('Articles:\n-------')
+    for i, article in enumerate(articles):
+        print(f'Article {i+1}: {" ".join(article)}')
 
     print('developers developers developers developers')
+
+    topics = fit_articles(articles)
+    print('\nTopics:\n-------')
+    for i, word_topics in enumerate(topics):
+        print(f'Article {i+1}: {word_topics}')
