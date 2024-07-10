@@ -7,10 +7,10 @@ from collections import Counter
 topics = {
     "politics": 0.3,
     "economics": 0.3,
-    "science": 0.2,
-    "entertainment": 0.7,
-    "sports": 0.4,
-    "kids": 0.1,
+    "science": 0.4,
+    "entertainment": 0.2,
+    "sports": 0.5,
+    "kids": 0.7,
 }
 
 words = {
@@ -24,11 +24,12 @@ words = {
     "play": [0.8, 0.8, 0.9, 0.3, 0.1, 0.1],
     "movie": [0.9, 0.9, 0.9, 0.1, 0.3, 0.3],
     "game": [0.9, 0.7, 0.9, 0.5, 0.1, 0.2],
+    "win": [0.8, 0.3, 0.1, 0.4, 0.8, 0.7],
 }
 
 
 # article generation
-def gen_article(num_words=10):
+def gen_article(num_words=15):
     topics_distribution = np.random.dirichlet([alpha for alpha in topics.values()])
     words_distribution_dict = {}
     for i, topic in enumerate(topics):
@@ -79,7 +80,10 @@ def fit_articles(articles, n_topics=6, n_runs=1000, epsilon=0.1):
         # gibbs sampling
         topic_weights = []
         for i in range(n_topics):
-            topic_weights.append((article_topic_counts.get(i, 0) + epsilon) * (word_topic_counts.get(i, 0) + epsilon))
+            topic_weights.append(
+                #(article_topic_counts.get(i, 0) + list(topics.values())[i]) * (word_topic_counts.get(i, 0) + words[word][i])
+                (article_topic_counts.get(i, 0) + epsilon) * (word_topic_counts.get(i, 0) + epsilon)
+            )
 
         topic_mapping[article_i][word_i] = np.random.choice(range(n_topics), p=topic_weights/np.sum(topic_weights))
 
