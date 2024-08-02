@@ -6,3 +6,4 @@ torchvision
 ipython
 matplotlib
 ipdb
+nltk

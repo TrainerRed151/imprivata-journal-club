@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 from collections import Counter
+import nltk
+from nltk.corpus import reuters
 
 
 # dirichlet distribution paramteres
@@ -46,7 +48,7 @@ def gen_article(num_words=15):
 
 
 # topic assignment
-def fit_articles(articles, n_topics=6, n_runs=1000, epsilon=0.1):
+def fit_articles(articles, n_topics=6, n_runs=100_000, epsilon=0.1):
     # randomly assign topics
     topic_mapping = []
     for article in articles:
@@ -85,7 +87,8 @@ def fit_articles(articles, n_topics=6, n_runs=1000, epsilon=0.1):
                 (article_topic_counts.get(i, 0) + epsilon) * (word_topic_counts.get(i, 0) + epsilon)
             )
 
-        topic_mapping[article_i][word_i] = np.random.choice(range(n_topics), p=topic_weights/np.sum(topic_weights))
+        #topic_mapping[article_i][word_i] = np.random.choice(range(n_topics), p=topic_weights/np.sum(topic_weights))
+        topic_mapping[article_i][word_i] = np.random.choice(range(n_topics), p=np.array(topic_weights)/np.sum(topic_weights))
 
     return topic_mapping
 
@@ -100,6 +103,18 @@ if __name__ == '__main__':
         print(f'Article {i+1}: {" ".join(article)}')
 
     print('developers developers developers developers')
+
+
+
+    # nltk documents
+    nltk.download('reuters')
+    file_ids = reuters.fileids()
+
+    articles = [reuters.raw(file_id) for file_id in file_ids[:10]]
+    for i, article in enumerate(articles):
+        print(f'Article {i+1}:\n{article[:200]}...\n')  # Print the first 200 characters of each article
+
+
 
     topics = fit_articles(articles)
     print('\nTopics:\n-------')
